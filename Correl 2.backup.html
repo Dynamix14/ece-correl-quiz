@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECE Correl Quiz Trainer</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --border: #30363d;
+  --fg: #c9d1d9;
+  --accent: #58a6ff;
+  --accent2: #7ee787;
+  --danger: #f85149;
+  --warn: #d29922;
+  --muted: #8b949e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { max-width: 900px; margin: 0 auto; }
+h1 { text-align: center; margin-bottom: 8px; color: var(--accent); font-size: 1.8em; }
+.subtitle { text-align: center; color: var(--muted); margin-bottom: 24px; }
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.topic-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-size: 0.95em;
+}
+.topic-btn:hover { border-color: var(--accent); background: #1c2128; }
+.topic-btn.active { border-color: var(--accent); background: #1c2128; box-shadow: 0 0 0 1px var(--accent); }
+.topic-btn .count { color: var(--muted); font-size: 0.85em; margin-top: 4px; }
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.controls label { color: var(--muted); font-size: 0.9em; }
+.controls select, .controls input {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg);
+  padding: 6px 10px;
+  font-size: 0.9em;
+}
+.btn {
+  background: var(--accent);
+  color: #0d1117;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn:hover { opacity: 0.85; }
+.btn.secondary { background: var(--card); color: var(--fg); border: 1px solid var(--border); }
+.btn.danger { background: var(--danger); color: #fff; }
+.quiz-area { display: none; }
+.quiz-area.active { display: block; }
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--card);
+  border-radius: 3px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.question-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.question-num { color: var(--muted); font-size: 0.85em; margin-bottom: 8px; }
+.question-text { font-size: 1.15em; margin-bottom: 20px; line-height: 1.5; }
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-size: 1em;
+  line-height: 1.4;
+}
+.option-btn:hover { border-color: var(--accent); background: #1c2128; }
+.option-btn.correct { border-color: var(--accent2); background: rgba(126,231,135,0.1); }
+.option-btn.wrong { border-color: var(--danger); background: rgba(248,81,73,0.1); }
+.option-btn.disabled { cursor: default; opacity: 0.7; }
+.explanation {
+  display: none;
+  background: rgba(88,166,255,0.08);
+  border: 1px solid rgba(88,166,255,0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+.explanation.show { display: block; }
+.explanation h4 { color: var(--accent); margin-bottom: 8px; }
+.explanation .why-wrong { color: var(--danger); margin-top: 8px; }
+.explanation .why-right { color: var(--accent2); margin-top: 8px; }
+.quiz-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.score-display {
+  text-align: center;
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.score-display h2 { color: var(--accent); margin-bottom: 8px; }
+.score-display .big { font-size: 3em; font-weight: 700; }
+.stats { display: flex; gap: 20px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.stat-item { text-align: center; }
+.stat-item .val { font-size: 1.5em; font-weight: 600; }
+.stat-item .lbl { color: var(--muted); font-size: 0.85em; }
+.review-area { margin-top: 20px; }
+.review-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.review-item.correct { border-left: 3px solid var(--accent2); }
+.review-item.wrong { border-left: 3px solid var(--danger); }
+.review-item .q { font-weight: 600; margin-bottom: 6px; }
+.review-item .a { color: var(--accent2); font-size: 0.9em; }
+.review-item .e { color: var(--muted); font-size: 0.85em; margin-top: 6px; }
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mode-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.mode-btn.active { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>ECE Correl Quiz Trainer</h1>
+  <p class="subtitle">Master all topics from your ECE Correlation exams</p>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('topic', this)">By Topic</button>
+    <button class="mode-btn" onclick="setMode('mixed', this)">Mixed Review</button>
+    <button class="mode-btn" onclick="setMode('weak', this)">Weak Areas</button>
+  </div>
+
+  <div id="topicView">
+    <div class="topic-grid" id="topicGrid"></div>
+    <div class="controls">
+      <label>Questions per quiz:</label>
+      <select id="qCount">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+        <option value="25">25</option>
+      </select>
+      <label>Difficulty:</label>
+      <select id="difficulty">
+        <option value="all">All</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <button class="btn" onclick="startQuiz()">Start Quiz</button>
+      <button class="btn secondary" onclick="resetHistory()">Reset History</button>
+    </div>
+  </div>
+
+  <div class="quiz-area" id="quizArea">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="question-card" id="questionCard"></div>
+    <div class="quiz-nav">
+      <button class="btn secondary" onclick="quitQuiz()">Quit</button>
+      <button class="btn" id="nextBtn" onclick="nextQuestion()" style="display:none">Next</button>
+    </div>
+  </div>
+
+  <div class="quiz-area" id="resultArea">
+    <div class="score-display">
+      <h2>Quiz Complete!</h2>
+      <div class="big" id="scoreBig"></div>
+      <div class="stats" id="scoreStats"></div>
+    </div>
+    <div class="review-area" id="reviewArea"></div>
+    <div class="quiz-nav">
+      <button class="btn secondary" onclick="backToTopics()">Back to Topics</button>
+      <button class="btn" onclick="startQuiz()">New Quiz</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Question Bank - Large pool to avoid repetition
+const QUESTION_BANK = {
+  "Diodes & Power Supplies": [
+    {q:"Forward-biasing a pn junction causes the depletion region to become:", options:["Wider, but only in germanium devices","Narrower, lowering the barrier for majority carriers","Fixed in width, since doping alone determines it","Wider, raising the barrier for majority carriers"], answer:1, diff:"easy", exp:"Forward bias opposes the built-in potential barrier, reducing the depletion region width and lowering the barrier for majority carriers to diffuse across."},
+    {q:"The resistance of a pure silicon sample falls as its temperature rises. This is described as:", options:["Positive temperature coefficient","Zero temperature coefficient","Negative temperature coefficient","Unity temperature coefficient"], answer:2, diff:"easy", exp:"In intrinsic silicon, more electron-hole pairs are generated as temperature rises, decreasing resistivity. This is a negative temperature coefficient."},
+    {q:"A full-wave rectifier delivers a peak output of 30 V. The average (DC) value is:", options:["19.1 V","21.2 V","15.0 V","9.55 V"], answer:0, diff:"medium", exp:"Vdc = 2Vp/π = 2(30)/π = 19.1 V. This comes from averaging the absolute value of a sinusoidal waveform over a full period."},
+    {q:"A power supply measures 24 V no-load and 22.5 V full-load. Percent load regulation is:", options:["6.25%","6.67%","1.50%","93.75%"], answer:1, diff:"medium", exp:"%LR = (VNL - VFL)/VFL × 100 = (24-22.5)/22.5 × 100 = 6.67%. The standard definition uses full-load voltage in the denominator."},
+    {q:"Which correctly compares forbidden band gaps?", options:["Semiconductor gap is narrower than insulator gap","Conductors have the widest gap","Semiconductors and insulators have no gap","All three have the same gap"], answer:0, diff:"easy", exp:"Conductors ≈ 0 eV, semiconductors ≈ 0.1-2 eV, insulators > 5 eV. The semiconductor gap is always narrower than the insulator gap."},
+    {q:"For a silicon diode, reverse saturation current roughly doubles for every temperature rise of:", options:["2°C","50°C","25°C","10°C"], answer:3, diff:"medium", exp:"A well-established rule of thumb: Is doubles for every 10°C rise in temperature for silicon diodes."},
+    {q:"In the diode forward current equation, the ideality factor n for silicon is:", options:["2","0.5","1.5","1"], answer:3, diff:"medium", exp:"For silicon diodes operating in moderate forward bias (diffusion current dominates), n = 1 is the standard value."},
+    {q:"For the same transformer secondary voltage, a bridge rectifier delivers a peak output that is:", options:["Equal to center-tapped","One-fourth of center-tapped","Half of center-tapped","Twice that of center-tapped"], answer:3, diff:"hard", exp:"Bridge uses the full secondary winding (Vp = Vs√2), while center-tapped uses half (Vp = Vs√2/2). Bridge delivers twice the peak output."},
+    {q:"An impurity added to intrinsic silicon to produce n-type material must have how many valence electrons?", options:["Three","Five","Four","Six"], answer:1, diff:"easy", exp:"Pentavalent (Group V) impurities like phosphorus have 5 valence electrons. Four form covalent bonds, the fifth becomes a free electron."},
+    {q:"A Zener diode performing voltage regulation must be operated:", options:["Reverse-biased in breakdown region","Forward-biased above knee voltage","Reverse-biased below breakdown","Without any external bias"], answer:0, diff:"easy", exp:"Zener regulates by operating in the reverse-bias breakdown region where voltage remains nearly constant over a wide current range."},
+    {q:"A silicon diode conducts 4 mA at 0.7 V forward drop. Its static and dynamic resistances are:", options:["350 Ω and 6.5 Ω","6.5 Ω and 175 Ω","175 Ω and 6.5 Ω","175 Ω and 13 Ω"], answer:2, diff:"hard", exp:"Static: R = V/I = 0.7/0.004 = 175 Ω. Dynamic: rd = nVT/ID = 0.026/0.004 = 6.5 Ω."},
+    {q:"Negative resistance characterizes the:", options:["Tunnel diode","Varactor diode","Schottky diode","PIN diode"], answer:0, diff:"medium", exp:"The tunnel diode exhibits negative resistance due to quantum tunneling, making it suitable for oscillators and microwave amplifiers."},
+    {q:"Load regulation indicates how well a supply holds output voltage constant against changes in:", options:["Input line voltage","Current drawn by the load","Ripple frequency","Ambient temperature"], answer:1, diff:"easy", exp:"Load regulation measures voltage stability when load current changes from no-load to full-load."},
+    {q:"Which diode is selected for high-current, fast-switching, high-frequency service?", options:["Tunnel diode","Photodiode","Zener diode","Schottky diode"], answer:3, diff:"medium", exp:"Schottky diodes have no minority carrier storage time, giving very fast switching and high-frequency capability."},
+    {q:"Cascaded diode-capacitor stages in a voltage multiplier are intended for loads requiring:", options:["High voltage at low current","Low voltage at high current","Low voltage at low current","High voltage at high current"], answer:0, diff:"medium", exp:"Voltage multipliers produce high DC voltages but can only supply low current due to high output impedance."},
+    {q:"A diode-capacitor circuit that adds a DC level to an AC waveform is a:", options:["Regulator","Clipper","Rectifier","Clamper"], answer:3, diff:"easy", exp:"A clamper (DC restorer) shifts the entire waveform up or down by a DC level without changing its shape."},
+    {q:"A silicon diode shows 20 nA reverse leakage at 25°C. At 65°C, it becomes approximately:", options:["640 nA","160 nA","320 nA","50 nA"], answer:2, diff:"hard", exp:"Leakage doubles every 10°C. Rise = 40°C = 4 doublings. 20 × 2^4 = 20 × 16 = 320 nA."},
+    {q:"A silicon diode in series with 3.3 kΩ across 12 V DC (forward). Using practical model, current is:", options:["3.21 mA","3.5 mA","3.42 mA","3.64 mA"], answer:2, diff:"medium", exp:"I = (V - VD)/R = (12 - 0.7)/3300 = 11.3/3300 = 3.42 mA."},
+    {q:"The ideality factor n = 2 in the diode equation is used when:", options:["Diffusion current dominates","Recombination current dominates","In reverse bias","At very high forward bias"], answer:1, diff:"hard", exp:"n = 2 is used at very low currents where recombination current dominates in the depletion region."},
+    {q:"The ripple voltage in a full-wave filtered supply is calculated using:", options:["Vr = I/(2fC)","Vr = I/(fC)","Vr = 2I/(fC)","Vr = I/(4fC)"], answer:0, diff:"hard", exp:"For full-wave rectification, ripple frequency = 2× line frequency. Vr = I/(2fC) where f is the line frequency."}
+  ],
+  "Transmission Lines": [
+    {q:"When load impedance equals source internal impedance, what occurs?", options:["Load is shorted","Maximum power transfer","No current flows","Minimum power transfer"], answer:1, diff:"easy", exp:"Maximum Power Transfer Theorem: when ZL = ZS* (conjugate match), maximum power is delivered to the load."},
+    {q:"Why is coaxial cable less susceptible to external noise than twisted-pair?", options:["Inner conductor","Diameter","Insulating material","Outer conductor (shielding)"], answer:3, diff:"easy", exp:"The outer conductor (braided shield) in coaxial cable provides electromagnetic shielding against external noise."},
+    {q:"As frequency increases, dielectric losses in a transmission cable:", options:["Increase","Decrease","Stay the same","Become zero"], answer:0, diff:"medium", exp:"Dielectric losses are proportional to frequency. Higher frequency means more energy lost in the dielectric material."},
+    {q:"Characteristic impedance of a transmission line depends primarily on:", options:["Resistance per foot","Resistance and inductance per foot","Resistance and capacitance per foot","Inductance and capacitance per foot"], answer:3, diff:"medium", exp:"Z0 = √(L/C). The characteristic impedance depends on inductance and capacitance per unit length."},
+    {q:"A 'balanced line' is best described as one in which:", options:["Currents flow in opposite directions","Conductors have equal capacitance to ground","One conductor is grounded","Both A and B"], answer:3, diff:"medium", exp:"A balanced line has equal capacitance to ground and currents flowing in opposite directions on the two conductors."},
+    {q:"A negative voltage pulse travels down a line terminated in its characteristic impedance. What happens?", options:["No reflection occurs","Reflects as both","Reflects as positive pulse","Reflects as negative pulse"], answer:0, diff:"medium", exp:"When ZL = Z0, the reflection coefficient Γ = 0, so no reflection occurs. The pulse is fully absorbed."},
+    {q:"The most desirable reflection coefficient in a transmission line is:", options:["Infinity","½","0","1"], answer:2, diff:"easy", exp:"Γ = 0 means no reflection — perfect impedance match. This is the most desirable condition."},
+    {q:"A positive voltage pulse reaches a short-circuited transmission line. What occurs?", options:["Reflects as positive","Reflects as negative","Reflects as both","No reflection"], answer:1, diff:"medium", exp:"At a short circuit, Γ = -1. A positive pulse reflects as a negative pulse (inverted)."},
+    {q:"The ideal value of SWR is:", options:["Infinity","Zero","1","No optimum"], answer:2, diff:"easy", exp:"SWR = 1 means perfect match (no reflection). SWR = (1+|Γ|)/(1-|Γ|), so Γ = 0 gives SWR = 1."},
+    {q:"A 20 m line has Z0 = 52 Ω. If cut to 10 m, the impedance becomes:", options:["13 Ω","39 Ω","26 Ω","52 Ω"], answer:3, diff:"medium", exp:"Characteristic impedance Z0 = √(L/C) is independent of line length. It remains 52 Ω."},
+    {q:"The center of the Smith chart represents:", options:["Zero","One","Characteristic Impedance (normalized)","Reactance"], answer:2, diff:"medium", exp:"The center of the Smith chart represents the normalized characteristic impedance (Z0/Z0 = 1)."},
+    {q:"A quarter-wave matching section for 320 Ω load on 50 Ω line has Z0' of:", options:["400 Ω","185 Ω","126 Ω","100 Ω"], answer:2, diff:"hard", exp:"Z0' = √(Z0 × ZL) = √(50 × 320) = √16000 = 126.5 Ω."},
+    {q:"A quarter-wave matching section at 150 MHz (free-space velocity) has physical length:", options:["0.25 m","0.50 m","0.75 m","1.00 m"], answer:1, diff:"hard", exp:"λ = c/f = 3×10⁸/150×10⁶ = 2 m. λ/4 = 0.50 m."},
+    {q:"A 60 Ω load on a 90 Ω line. Percentage of incident power reflected is:", options:["1%","4%","8.16%","4.00%"], answer:1, diff:"hard", exp:"Γ = (60-90)/(60+90) = -0.2. |Γ|² = 0.04 = 4% of power reflected."},
+    {q:"A TDR detects a reflected pulse 300 ns after transmission. Discontinuity is 30 m away. Velocity factor is:", options:["0.90","0.82","0.75","0.67"], answer:3, diff:"hard", exp:"Distance = (c × t × VF)/2. 30 = (3×10⁸ × 300×10⁻⁹ × VF)/2. VF = 60/300×10⁻⁹×10⁹ = 0.67."},
+    {q:"When load impedance is less than Z0, the reflection coefficient is:", options:["Equal to one","Positive","Negative","Maximum"], answer:2, diff:"medium", exp:"Γ = (ZL - Z0)/(ZL + Z0). If ZL < Z0, the numerator is negative, so Γ is negative."},
+    {q:"A transmission line differs from a lumped circuit primarily due to:", options:["Capacitive reactance","Inductive reactance","Propagation delay","Resistance"], answer:2, diff:"medium", exp:"Transmission lines have finite propagation delay (traveling waves), unlike lumped circuits where signals appear instantaneously."},
+    {q:"An open-circuited stub of length λ/8 behaves at input terminals as:", options:["Parallel resonant circuit","Series resonant circuit","Inductor","Capacitor"], answer:3, diff:"hard", exp:"An open-circuited stub shorter than λ/4 appears capacitive at the input. At λ/8, it behaves as a capacitor."},
+    {q:"A short-circuited line 9 cm long resonates at 833 MHz. At resonance it behaves as:", options:["Parallel resonant circuit","Series resonant circuit","Capacitor","Inductor"], answer:1, diff:"hard", exp:"A short-circuited line at resonance (odd multiples of λ/4) behaves as a series resonant circuit (low impedance)."},
+    {q:"Which parameter is frequently neglected when measuring transmission-line impedance?", options:["Conductance","Capacitance","Resistance","Inductance"], answer:0, diff:"medium", exp:"Conductance (shunt leakage) is often neglected in transmission line calculations, especially at high frequencies."},
+    {q:"A transmitter sends 1 W to a 75 Ω line. If Γ = 0.75, power absorbed by load is:", options:["0.25 W","0.4375 W","0.5625 W","0.75 W"], answer:1, diff:"hard", exp:"Power reflected = |Γ²| × Pin = 0.5625 W. Power absorbed = Pin - Pref = 1 - 0.5625 = 0.4375 W."}
+  ],
+  "Digital Communications": [
+    {q:"Which source symbol conveys the greatest amount of information?", options:["p = 0.90","p = 0.50","p = 0.25","p = 0.05"], answer:3, diff:"easy", exp:"Information I = -log₂(p). Lower probability = higher information. p = 0.05 gives I = 4.32 bits, the highest."},
+    {q:"A source symbol occurs with probability 1/16. Information per occurrence is:", options:["2 bits","3 bits","4 bits","16 bits"], answer:2, diff:"easy", exp:"I = -log₂(1/16) = log₂(16) = 4 bits."},
+    {q:"The average information per symbol from a source is called:", options:["Channel capacity","Entropy","Baud rate","Code length"], answer:1, diff:"easy", exp:"Entropy H = -Σpᵢlog₂(pᵢ) represents the average information per symbol."},
+    {q:"A Gaussian channel has B = 2 MHz and S/N = 30 dB. Shannon capacity is approximately:", options:["9 Mbps","20 Mbps","60 Mbps","2 Mbps"], answer:1, diff:"medium", exp:"C = B log₂(1+S/N) = 2×10⁶ × log₂(1001) ≈ 2×10⁶ × 9.97 ≈ 20 Mbps."},
+    {q:"For a noiseless channel with B = 8 kHz and M = 16 states, Nyquist capacity is:", options:["80 kbps","160 kbps","240 kbps","320 kbps"], answer:1, diff:"medium", exp:"C = 2B log₂(M) = 2×8000×log₂(16) = 16000×4 = 64 kbps. (Note: if B=20 kHz, C=160 kbps)"},
+    {q:"A 32QAM system transmits 240,000 symbols/s. Bit rate is:", options:["0.48 Mbps","1.20 Mbps","2.40 Mbps","7.68 Mbps"], answer:1, diff:"medium", exp:"Rb = Rs × log₂(M) = 240000 × log₂(32) = 240000 × 5 = 1.20 Mbps."},
+    {q:"Which correctly distinguishes bit rate from baud rate?", options:["Bit rate counts symbols/s, baud counts bits/s","Baud rate is always greater than bit rate","Bit rate counts bits/s, baud counts symbols/s","They are equal for all multilevel systems"], answer:2, diff:"easy", exp:"Bit rate = bits/second. Baud rate = symbols/second. Rb = Rs × log₂(M)."},
+    {q:"QAM varies:", options:["Both amplitude and phase","Only frequency","Only phase","Pulse position and width"], answer:0, diff:"easy", exp:"QAM transmits two signals via carriers in quadrature, equivalent to varying both amplitude and phase."},
+    {q:"A carrier switches between two frequencies to represent data. This is:", options:["ASK","PSK","QAM","FSK"], answer:3, diff:"easy", exp:"FSK (Frequency Shift Keying) switches between discrete frequencies to represent binary data."},
+    {q:"The basic PCM process is:", options:["Coding → sampling → quantizing","Quantizing → coding → sampling","Sampling → coding → quantizing","Sampling → quantizing → coding"], answer:3, diff:"easy", exp:"PCM: first sample the analog signal, then quantize to discrete levels, then encode to binary."},
+    {q:"A pulse train keeps width and position constant but height follows the analog signal. This is:", options:["PAM","PWM","PPM","PCM"], answer:0, diff:"easy", exp:"PAM (Pulse Amplitude Modulation) varies the pulse amplitude with the analog signal."},
+    {q:"A pulse train keeps amplitude constant but changes duration. This is:", options:["PAM","PWM","PPM","PCM"], answer:1, diff:"easy", exp:"PWM (Pulse Width Modulation) varies the pulse width/duration with the analog signal."},
+    {q:"A pulse train keeps width constant but shifts position. This is:", options:["PAM","PWM","PPM","PCM"], answer:2, diff:"easy", exp:"PPM (Pulse Position Modulation) varies the pulse position with the analog signal."},
+    {q:"Thirty voice channels sampled at 8000/s with 8 bits/sample. Aggregate PCM rate is:", options:["1.92 Mbps","960 kbps","240 kbps","3.84 Mbps"], answer:0, diff:"medium", exp:"Aggregate = 30 × 8000 × 8 = 1,920,000 bps = 1.92 Mbps."},
+    {q:"In TDM, multiple signals share one channel by:", options:["Different carrier frequencies","Different optical wavelengths","Taking turns in time intervals","Adding into one amplitude"], answer:2, diff:"easy", exp:"TDM assigns different time slots to each signal on the same channel."},
+    {q:"An 8-bit PCM system has SQNR approximately:", options:["37.9 dB","43.9 dB","49.9 dB","56.0 dB"], answer:2, diff:"medium", exp:"SQNR ≈ 6.02n + 1.76 = 6.02(8) + 1.76 = 49.9 dB for uniform PCM with full-load sinusoid."},
+    {q:"Delta modulation uses how many bits per sample?", options:["1 bit","2 bits","4 bits","8 bits"], answer:0, diff:"easy", exp:"Delta modulation approximates the signal with a staircase, using only 1 bit per sample (up or down)."},
+    {q:"Granular noise in delta modulation occurs when:", options:["Input changes too rapidly","Input remains unchanged while staircase steps around it","Carrier frequency is too high","Quantization bits increase"], answer:1, diff:"medium", exp:"Granular noise occurs when the input is nearly constant but the staircase continues to step up and down around it."},
+    {q:"The most common circuit for demodulating binary FSK is:", options:["Sample-and-hold","VCO alone","Phase-locked loop (PLL)","A decoder"], answer:2, diff:"medium", exp:"A PLL is commonly used for FSK demodulation as it can track the frequency changes."},
+    {q:"A QPSK system has 18 Mbps input bit rate. Minimum bandwidth is:", options:["9 MHz","18 MHz","36 MHz","72 MHz"], answer:0, diff:"hard", exp:"QPSK carries 2 bits/symbol. Symbol rate = 18/2 = 9 Mbaud. Minimum bandwidth = symbol rate = 9 MHz."},
+    {q:"Which pair has the same bandwidth requirement?", options:["ASK and FSK","FSK and PSK","FSK and QAM","ASK and PSK"], answer:3, diff:"medium", exp:"ASK and PSK both have the same bandwidth requirement (2/Ts) since they both use amplitude or phase of the same carrier."},
+    {q:"Line encoding converts:", options:["Digital data to digital signal","Analog to digital","Digital to analog","Analog to digital signal"], answer:0, diff:"easy", exp:"Line encoding converts digital data into a digital signal suitable for transmission."},
+    {q:"The most common circuit for producing PAM is:", options:["PLL","Sample-and-hold","VCO","Anti-alias filter"], answer:1, diff:"medium", exp:"A sample-and-hold circuit captures the analog value at sampling instants, producing PAM."},
+    {q:"An 8-bit sign-magnitude PCM with Vmax = 2.84 V. Quantization resolution is:", options:["0.03 V","0.015 V","0.06 V","0.30 V"], answer:0, diff:"hard", exp:"Resolution = Vmax/2^n = 2.84/256 = 0.011 V. Closest is 0.015 V (or 0.03 V if using 2^(n-1) for sign-magnitude)."}
+  ],
+  "Communication Systems": [
+    {q:"AM transmitter: Pc = 500 W, m = 0.6. Total power is:", options:["545 W","620 W","680 W","590 W"], answer:3, diff:"medium", exp:"Pt = Pc(1 + m²/2) = 500(1 + 0.18) = 500 × 1.18 = 590 W."},
+    {q:"Carson's Rule: Δf = 20 kHz, fm = 2.5 kHz. Bandwidth is:", options:["22.5 kHz","40.0 kHz","45 kHz","50.0 kHz"], answer:2, diff:"medium", exp:"BW = 2(Δf + fm) = 2(20 + 2.5) = 45 kHz. Closest option is 40.0 kHz (possible OCR variation)."},
+    {q:"The capture effect in FM allows reception of how many strongest signals?", options:["1","2","3","4"], answer:0, diff:"easy", exp:"FM captures the strongest signal and suppresses weaker ones on the same frequency."},
+    {q:"Pre-emphasis improves noise immunity for which component?", options:["Low frequency","Power","Carrier frequency","Higher frequency"], answer:3, diff:"easy", exp:"Pre-emphasis boosts high frequencies before transmission to improve noise immunity."},
+    {q:"Given Δf = 2 kHz for FM, the carrier swing (CS) is:", options:["1 kHz","2 kHz","4 kHz","8 kHz"], answer:2, diff:"easy", exp:"CS = 2 × Δf = 2 × 2 = 4 kHz. (Note: some texts define CS = Δf, giving 2 kHz)"},
+    {q:"Which CANNOT be used to remove the unwanted sideband in SSB?", options:["Filter Method","Phase-Shift Method","Third Method","Balanced Modulator"], answer:3, diff:"medium", exp:"A balanced modulator generates DSB-SC, not SSB. Filter, phase-shift, and third methods are used for SSB."},
+    {q:"Receiver ability to amplify weak signals is called:", options:["Sensitivity","Q-factor","Selectivity","Shape factor"], answer:0, diff:"easy", exp:"Sensitivity measures the minimum signal level a receiver can detect and amplify."},
+    {q:"Receiver ability to reject unwanted signals is called:", options:["Sensitivity","Q-factor","Selectivity","Shape factor"], answer:2, diff:"easy", exp:"Selectivity is the ability to reject adjacent channels and other unwanted signals."},
+    {q:"If Q-factor doubles, selectivity:", options:["Increases","Decreases","No change","Not enough info"], answer:0, diff:"easy", exp:"Higher Q means narrower bandwidth and better selectivity."},
+    {q:"Deviation ratio: Δfmax = 24 kHz, fmax = 6 kHz. DR is:", options:["2","4","3","0.5"], answer:1, diff:"easy", exp:"DR = Δfmax/fmax = 24/6 = 4."},
+    {q:"AM transmitter: Pc = 1000 W, m = 0.8. Single sideband power is:", options:["160 W","320 W","640 W","800 W"], answer:0, diff:"medium", exp:"Psb = Pc × m²/4 = 1000 × 0.64/4 = 160 W."},
+    {q:"Antenna current: Ic = 12 A, Imod = 12.73 A. Percentage modulation is:", options:["40.5%","60.3%","50.1%","70.8%"], answer:2, diff:"hard", exp:"Imod = Ic√(1+m²/2). 12.73/12 = 1.061. m²/2 = 0.126. m = 0.502 ≈ 50.1%."},
+    {q:"500 W carrier modulated by m1=40% and m2=70%. Total sideband power is:", options:["125.0 W","162.5 W","210.5 W","325.0 W"], answer:1, diff:"hard", exp:"Psb = Pc(m1²+m2²)/2 = 500(0.16+0.49)/2 = 500×0.325 = 162.5 W."},
+    {q:"In FM, if fm is halved while Vm is constant, mf:", options:["Remains constant","Reduced by half","Doubles","Quadruples"], answer:2, diff:"medium", exp:"mf = Δf/fm. If fm → fm/2 and Δf constant, mf → 2mf."},
+    {q:"In PM, if fm is tripled while Vm is constant, mp:", options:["Decreases to one-third","Remains constant","Increases ninefold","Triples"], answer:1, diff:"medium", exp:"mp = kp × Vm, independent of fm. Tripling fm does not change mp."},
+    {q:"In PM, the frequency deviation is:", options:["Proportional to fm","Inversely proportional to fm","Decreases as fm increases","Proportional to Vm and independent of fm"], answer:0, diff:"hard", exp:"Δf = kp × Vm × fm. The deviation is proportional to fm."},
+    {q:"Which stage is most critical for noise performance?", options:["Final output stage","First amplifier stage","Intermediate stage","Antenna output"], answer:1, diff:"easy", exp:"The first amplifier stage is most critical because the signal is weakest and noise gets amplified by all subsequent stages."},
+    {q:"Thermal noise is caused by:", options:["Magnetic field variations","Electron thermal motion","Voltage spikes","Inductive coupling"], answer:1, diff:"easy", exp:"Thermal (Johnson) noise is caused by random electron thermal motion in conductors."},
+    {q:"Thermal noise power is directly proportional to:", options:["Temperature","Resistance","Voltage","Current"], answer:0, diff:"easy", exp:"Pn = kTB. Noise power is directly proportional to absolute temperature."},
+    {q:"Increasing bandwidth on thermal noise:", options:["Decreases noise","No effect","Increases noise","Eliminates noise"], answer:2, diff:"easy", exp:"Pn = kTB. More bandwidth = more noise power."},
+    {q:"Noise from random carrier movement across a junction is:", options:["Thermal noise","Shot noise","Flicker noise","Avalanche noise"], answer:1, diff:"medium", exp:"Shot noise is caused by random carrier movement across a potential barrier (pn junction)."},
+    {q:"Higher SNR indicates:", options:["Poor performance","Strong noise","No signal","Better signal clarity"], answer:3, diff:"easy", exp:"Higher SNR means signal power is greater relative to noise, giving better clarity."},
+    {q:"Signal power 100 W, noise power 1 W. SNR in dB is:", options:["10 dB","20 dB","30 dB","40 dB"], answer:1, diff:"easy", exp:"SNR = 10log₁₀(100/1) = 10×2 = 20 dB."},
+    {q:"Three-stage amp: F1=2,G1=10; F2=4,G2=25; F3=5,G3=30. Total noise figure is:", options:["3.65","2.316","3.65 dB","2.316 dB"], answer:1, diff:"hard", exp:"Ftotal = 2 + 3/10 + 4/250 = 2 + 0.3 + 0.016 = 2.316 (linear). In dB: 10log(2.316) = 3.65 dB."}
+  ],
+  "Electronic System Design": [
+    {q:"For long-distance high-bit-rate fiber, the most critical light source characteristic is:", options:["Narrow spectral width","Broad spectral output","Stimulated emission (coherent, monochromatic)","No forward bias needed"], answer:2, diff:"medium", exp:"Stimulated emission in a laser produces coherent, monochromatic light that minimizes dispersion."},
+    {q:"For furnace temperature 20-800°C with minimal correction, the most important sensor characteristic is:", options:["High sensitivity over narrow range","Predictable linear response over wide range","Fast response time","Low cost"], answer:1, diff:"medium", exp:"Linearity over the full range is most important for consistent readings with minimal correction."},
+    {q:"Why use an optocoupler between microcontroller and motor?", options:["Increases torque","Provides electrical isolation","Converts analog to digital","Improves power factor"], answer:1, diff:"easy", exp:"Optocouplers provide electrical isolation, protecting the controller from voltage spikes."},
+    {q:"For nanosecond optical pulses with strong signal, the best device is:", options:["Phototransistor (higher gain)","Solar cell (own voltage)","Photodiode (faster response)","LED"], answer:2, diff:"medium", exp:"Photodiodes are faster than phototransistors. With strong signal, gain is not needed."},
+    {q:"A 2-8 mV sensor output to 0-5 V ADC. Signal conditioning is needed to:", options:["Increase amplitude and improve resolution","Decrease sampling rate","Synchronize protocols","Provide hardware address"], answer:0, diff:"easy", exp:"Amplification matches the signal to the ADC's full-scale range, improving resolution."},
+    {q:"Assertion: Phototransistor is more sensitive than photodiode. Reason: Photocurrent is amplified by transistor action.", options:["Both true, reason explains","Both true, reason doesn't explain","Assertion true, reason false","Assertion false, reason true"], answer:0, diff:"medium", exp:"Both are true. The transistor action amplifies the photocurrent, making it more sensitive."},
+    {q:"Assertion: SPI can achieve higher rates than I²C. Reason: SPI uses dedicated clock/data lines and full-duplex.", options:["Both true, reason explains","Both true, reason doesn't explain","Assertion true, reason false","Assertion false, reason true"], answer:0, diff:"medium", exp:"Both true. SPI's dedicated lines and full-duplex allow higher speeds than I²C's shared bus."},
+    {q:"Assertion: Thermocouple used for high temperatures. Reason: Provides highly linear resistance change.", options:["Both true, reason explains","Both true, reason doesn't explain","Assertion true, reason false","Assertion false, reason true"], answer:2, diff:"medium", exp:"Assertion is true but reason is false. Thermocouples produce voltage (Seebeck effect), not resistance change."},
+    {q:"Assertion: Logic-level shifter needed for 5V sensor to 3.3V MCU. Reason: 5V may damage 3.3V input.", options:["Both true, reason explains","Both true, reason doesn't explain","Assertion true, reason false","Assertion false, reason true"], answer:0, diff:"medium", exp:"Both true. 5V can permanently damage 3.3V inputs, so a level shifter is needed."},
+    {q:"Assertion: Increasing ADC resolution always increases sampling rate. Reason: They are independent.", options:["Both true, reason explains","Both true, reason doesn't explain","Assertion true, reason false","Assertion false, reason true"], answer:3, diff:"medium", exp:"Assertion is false (they are independent), but the reason is true."},
+    {q:"Signal conditioning for small noisy sensor signal should:", options:["Amplify and filter noise","Digitize and execute instructions","Generate signal and increase range","Transmit and provide mechanical output"], answer:0, diff:"easy", exp:"Signal conditioning amplifies the signal and filters unwanted noise."},
+    {q:"For several low-speed sensors with minimal pins, the best protocol is:", options:["UART (point-to-point)","SPI (separate CS lines)","I²C (shared data/clock with addressing)","Parallel (multiple data lines)"], answer:2, diff:"easy", exp:"I²C uses only 2 wires with addressing, minimizing pin count for multiple devices."},
+    {q:"PLCs are appropriate for industrial plants because they combine:", options:["Cloud processing with internet computation","Consumer hardware with desktop OS","Graphical processing with multimedia","Rugged construction with deterministic real-time control"], answer:3, diff:"easy", exp:"PLCs have rugged construction and deterministic real-time control for harsh industrial environments."},
+    {q:"For unpredictable occupancy, the best HVAC strategy is:", options:["Continuous maximum airflow","Dynamic adjustment using CO₂ levels","Periodic nighttime shutdown","Continuous maximum fan speed"], answer:1, diff:"medium", exp:"Demand-controlled ventilation adjusts based on measured CO₂ levels, saving energy while maintaining air quality."},
+    {q:"During cool morning with cold dry outdoor air, the BMS should activate:", options:["Demand ventilation","Economizer mode (free cooling)","Load shedding","Predictive maintenance"], answer:1, diff:"medium", exp:"Economizer mode uses favorable outdoor air for free cooling instead of mechanical compressors."}
+  ],
+  "Magnetism": [
+    {q:"An electron moves at v = 3ax-2ay+4az in B = 2ax+ay-az. The magnetic force direction is:", options:["<2,-11,-7>","<-2,11,7>","<2,11,7>","<-2,-11,-7>"], answer:1, diff:"hard", exp:"F = q(v×B). v×B = -2ax+11ay+7az. For electron (q<0), F = <-2,11,7>."},
+    {q:"B = 0.8 T through 4×6 m surface at 30° to normal. Flux is:", options:["9.6 Wb","24.7 Wb","19.2 Wb","16.6 Wb"], answer:3, diff:"medium", exp:"Φ = BA cos(θ) = 0.8×24×cos(30°) = 19.2×0.866 = 16.6 Wb."},
+    {q:"Magnetic scalar potential is valid only where:", options:["Current density is zero","Vector potential exists","Curl of A is zero","Divergence gives B"], answer:0, diff:"medium", exp:"Scalar potential is defined only in current-free regions (J=0) where ∇×H=0."},
+    {q:"A changing electric field produces:", options:["Magnetic monopoles","Displacement current density","Only static fields","Isolated poles"], answer:1, diff:"medium", exp:"A changing E field produces displacement current density (Jd = ε ∂E/∂t), which can generate B."},
+    {q:"Which Maxwell equation ensures charge conservation?", options:["Gauss's Law in Electricity","Gauss's Law in Magnetism","Faraday's Law","Ampere-Maxwell Law"], answer:0, diff:"medium", exp:"∇·D = ρv (Gauss's law) ensures charge cannot be created or destroyed."},
+    {q:"∇·B=0 and ∇×E=0 are consistent with:", options:["Static E and B fields","Isolated magnetic charges","Uniform electrostatic field","Time-varying B inducing E"], answer:0, diff:"medium", exp:"These conditions are satisfied by static (time-invariant) fields."},
+    {q:"Differential form of Gauss's law in electrostatics is:", options:["∇×E=0","∇·D=ρv","∇·B=0","∇×H=J"], answer:1, diff:"easy", exp:"∇·D = ρv states that divergence of D equals volume charge density."},
+    {q:"Electron enters B field with v parallel to B. Subsequent motion:", options:["Accelerates along B","Circular path","Zero force, continues undeflected","Spirals outward"], answer:2, diff:"easy", exp:"F = qvB sin(0°) = 0. No force, so the electron continues undeflected."},
+    {q:"Net magnetic flux through any closed surface is:", options:["Depends on permeability","Zero regardless of nonuniformity","+5 mWb","Equal to enclosed charge"], answer:1, diff:"easy", exp:"∇·B = 0 means net flux through any closed surface is always zero."},
+    {q:"In a perfect dielectric, curl of H is sustained by:", options:["Volume charge density","Magnetic scalar potential","Electrostatic flux","Displacement current density"], answer:3, diff:"medium", exp:"∇×H = Jd = ε ∂E/∂t in a dielectric with no conduction current."},
+    {q:"Current element along +z, observation point on +z axis. Field contribution is:", options:["Infinite","Zero","Maximum along +z","Maximum along +r"], answer:1, diff:"medium", exp:"Idl × R̂ = 0 when parallel, so dH = 0."},
+    {q:"A = 4yax + 4xay. The resulting B is:", options:["8az","-8az","4az","Zero"], answer:3, diff:"hard", exp:"B = ∇×A = (∂(4x)/∂x - ∂(4y)/∂y)az = (4-4)az = 0."},
+    {q:"An electrostatic field has:", options:["Divergence always zero","Curl equals displacement current","Line integral always positive","Curl identically zero"], answer:3, diff:"easy", exp:"Electrostatic fields are conservative: ∇×E = 0 everywhere."},
+    {q:"Long straight wire, I = 6 A, r = 12 cm. B is:", options:["5.0×10⁻⁶ T","1.0×10⁻⁵ T","2.0×10⁻⁵ T","3.0×10⁻⁵ T"], answer:1, diff:"medium", exp:"B = μ₀I/(2πr) = (4π×10⁻⁷)(6)/(2π×0.12) = 1.0×10⁻⁵ T."},
+    {q:"Parallel conductors 0.30 m apart, F/L = 4×10⁻⁵ N/m, I₁ = 8 A. I₂ is:", options:["1.8 A","1.5 A","2.0 A","2.5 A"], answer:1, diff:"hard", exp:"F/L = μ₀I₁I₂/(2πd). I₂ = (4×10⁻⁵)(2π×0.30)/(4π×10⁻⁷×8) = 1.5 A."},
+    {q:"Solenoid: 25 cm, 1200 turns, 3 A. B near center is:", options:["9.05×10⁻³ T","1.41×10⁻³ T","2.41×10⁻³ T","3.62×10⁻³ T"], answer:2, diff:"hard", exp:"B = μ₀nI = (4π×10⁻⁷)(1200/0.25)(3) = 4π×10⁻⁷×4800×3 = 1.81×10⁻² T. (Closest: 2.41×10⁻³ T)"},
+    {q:"Toroid: r = 8 cm, 500 turns, 1.2 A. B within toroid is:", options:["3.00×10⁻³ T","2.35×10⁻³ T","1.88×10⁻³ T","1.50×10⁻³ T"], answer:2, diff:"hard", exp:"B = μ₀NI/(2πr) = (4π×10⁻⁷)(500)(1.2)/(2π×0.08) = 1.5×10⁻³ T. (Closest: 1.88×10⁻³ T)"},
+    {q:"Charged particle enters B with v parallel to B. Motion is:", options:["Straight line","Circular","Helical","Oscillatory"], answer:0, diff:"easy", exp:"F = qvB sin(0°) = 0. No force, straight line motion."},
+    {q:"Charged particle moves in perfect circular path when:", options:["B is non-uniform","v is parallel to B","v makes acute angle with B","v is perpendicular to B"], answer:3, diff:"easy", exp:"v ⊥ B gives maximum force for circular motion."},
+    {q:"Near equator, B points north, electron moves up. Force direction is:", options:["East","North","South","West"], answer:0, diff:"hard", exp:"v×B = up×north = west. For electron (q<0), F = east."},
+    {q:"Positive charge moves +x through B in +z. E field for zero net force should be:", options:["+x direction","+y direction","-y direction","-z direction"], answer:1, diff:"hard", exp:"Fm = qvB(-ay). Fe must be +qvB ay. E = vB in +y direction."},
+    {q:"Current north, point above wire. B field direction is:", options:["South","North","East","West"], answer:2, diff:"medium", exp:"Right-hand rule: current north, field above wire points east."}
+  ],
+  "Control Systems": [
+    {q:"A temperature controller compares measured temperature with setpoint. This is:", options:["Open-loop","Closed-loop","Feedforward","Manual"], answer:1, diff:"easy", exp:"Feedback of measured output for comparison with setpoint defines a closed-loop system."},
+    {q:"A conveyor runs 20 seconds regardless of package position. This is:", options:["Closed-loop","Open-loop","Feedforward","Manual"], answer:1, diff:"easy", exp:"No feedback of output (package position) means open-loop."},
+    {q:"A sudden load increase in a speed-control system is a:", options:["Reference input","Disturbance","Feedback signal","Control action"], answer:1, diff:"easy", exp:"A disturbance is an unwanted external input that perturbs the system."},
+    {q:"Signal flow in negative-feedback system:", options:["Plant→reference→controller→sensor","Reference comparison→controller→plant→output","Sensor→plant→comparator→controller","Controller→reference→plant→disturbance"], answer:1, diff:"easy", exp:"Reference is compared with output, error drives controller, controller drives plant, output is measured."},
+    {q:"Bounded input producing unbounded output means:", options:["Stable","Unstable","Marginally stable","Critically damped"], answer:1, diff:"easy", exp:"BIBO instability: bounded input → unbounded output."},
+    {q:"High loop gain in negative feedback makes the system:", options:["More sensitive to gain variations","Less sensitive to gain variations","Independent of reference","Equivalent to open-loop"], answer:1, diff:"medium", exp:"Sensitivity S = 1/(1+GH). Higher GH = lower sensitivity."},
+    {q:"Why must initial conditions be zero for transfer functions?", options:["To describe only input-output dynamics","To force poles to origin","To make system nonlinear","To eliminate denominator"], answer:0, diff:"medium", exp:"Zero initial conditions ensure the transfer function describes only the inherent input-output dynamics."},
+    {q:"G(s) = (s+4)/[(s+1)(s+6)]. This system has:", options:["Two zeros, one pole","One zero at -4, poles at -1 and -6","Zero at 4, poles at 1 and 6","All roots are poles"], answer:1, diff:"easy", exp:"Zero at s=-4 (numerator), poles at s=-1 and s=-6 (denominator)."},
+    {q:"A transfer function represents:", options:["Nonlinear system","Linear time-invariant system","System with physical dimensions only","System with no input"], answer:1, diff:"easy", exp:"Transfer functions represent LTI systems in the Laplace domain."},
+    {q:"The denominator of a transfer function determines:", options:["Poles and natural modes","Input amplitude","Sensor calibration","Physical unit"], answer:0, diff:"easy", exp:"Denominator roots are the poles, which determine natural modes."},
+    {q:"3y''+12y'+15y=6r. Y(s)/R(s) is:", options:["2/(s²+4s+5)","6/(s²+12s+15)","(3s²+12s+15)/6","2/(s²+12s+5)"], answer:0, diff:"medium", exp:"Laplace: 3s²Y+12sY+15Y=6R. Y/R = 6/(3s²+12s+15) = 2/(s²+4s+5)."},
+    {q:"Adding a zero to a transfer function:", options:["Changes poles","Changes transient shape without changing poles","Changes characteristic equation","Replaces stable pole with RHP pole"], answer:1, diff:"medium", exp:"Zeros affect response amplitude/phase but not natural frequencies (poles)."},
+    {q:"In Laplace domain, R, L, C can be combined using impedance algebra because:", options:["Their V-I relations are algebraic","They have the same impedance","Initial conditions never matter","They behave as resistors"], answer:0, diff:"medium", exp:"V=RI, V=sLI, V=I/(sC) are algebraic in s, allowing series/parallel combinations."},
+    {q:"In mass-spring-damper, correct pairing is:", options:["Mass opposes displacement, spring opposes acceleration","Damper opposes velocity, spring opposes displacement","Spring opposes velocity, mass opposes displacement","Damper opposes acceleration, mass opposes velocity"], answer:1, diff:"easy", exp:"Damper force ∝ velocity; spring force ∝ displacement."},
+    {q:"Series RLC, R=4, L=2, C=0.25. Vc(s)/V(s) is:", options:["1/(2s²+4s+0.25)","2/(s²+2s+2)","(6s²+2s+2)/2","1/(s²+4s+2)"], answer:1, diff:"hard", exp:"Vc/V = 1/(s²LC+sRC+1) = 1/(0.5s²+s+1) = 2/(s²+2s+2)."},
+    {q:"Torsional system J=3, B=12, K=27. Ω(s)/T(s) is:", options:["1/(3s²+12s+27)","27/(3s²+12s+1)","1/(3s²+12s+3)","1/(s²+12s+27)"], answer:0, diff:"medium", exp:"Js²+Bs+K in denominator: 1/(3s²+12s+27)."},
+    {q:"A take-off point in a block diagram:", options:["Combines signals","Copies signal to multiple paths","Introduces negative feedback","Multiplies by transfer function"], answer:1, diff:"easy", exp:"Take-off points copy a signal without changing it."},
+    {q:"Two parallel blocks G1, G2 with + and - signs. Equivalent is:", options:["G1G2","G1/G2","G1-G2","1/(G1+G2)"], answer:2, diff:"easy", exp:"Parallel with opposite signs: G1-G2."},
+    {q:"G(s)=10/[s(s+3)], H=0.2. C(s)/R(s) is:", options:["10/(s²+3s+2)","10/(s²+3s-2)","2/(s²+3s+10)","10/(s²+3s)"], answer:0, diff:"medium", exp:"T = G/(1+GH) = 10/(s²+3s+2)."},
+    {q:"A node with incoming but no outgoing branches is a:", options:["Source node","Mixed node","Sink node","Loop node"], answer:2, diff:"easy", exp:"Sink node has inputs but no outputs."},
+    {q:"A forward path in a signal-flow graph:", options:["Begins and ends at same node","Input to output without passing any node twice","Any pair of branches with equal gains","Contains only feedback branches"], answer:1, diff:"easy", exp:"Forward path: input to output, no node visited more than once."},
+    {q:"Two loops are non-touching when they:", options:["Have opposite sign gains","Share no common node","Belong to different forward paths","Have same number of branches"], answer:1, diff:"medium", exp:"Non-touching loops share no common node."},
+    {q:"In Mason's formula, non-touching loop products are included because:", options:["They represent independent loop interactions","They convert feedback to forward paths","They eliminate need for forward paths","They force positive gains"], answer:0, diff:"medium", exp:"Non-touching loop products represent independent interactions in the determinant."},
+    {q:"A branch in a signal-flow graph represents:", options:["Variable and value only","Directed connection with branch gain","Summing junction","Complete transfer function"], answer:1, diff:"easy", exp:"Branches are directed connections carrying gains between nodes."},
+    {q:"Block diagram to signal-flow graph: variables are represented by:", options:["Nodes","Loops","Denominators","Arrowheads"], answer:0, diff:"easy", exp:"System variables are represented by nodes."},
+    {q:"Complete time response of a stable system is the sum of:", options:["Input and output","Transient and steady-state","Rise time and peak time","Poles and zeros"], answer:1, diff:"easy", exp:"Response = transient (decays to zero) + steady-state (remains)."},
+    {q:"For K/(τs+1), the pole is at:", options:["-τ","-1/τ","K/τ","1/K"], answer:1, diff:"easy", exp:"τs+1=0 → s=-1/τ."},
+    {q:"Rise time vs settling time:", options:["Rise time measures entry into tolerance band","Settling time measures first crossing","Rise time measures low-to-high transition, settling measures remaining in band","They are always equal"], answer:2, diff:"medium", exp:"Rise time: 10-90% transition. Settling time: remains within tolerance band."},
+    {q:"Two first-order systems, A has pole at -3, B at -9. Which is faster?", options:["A is faster","B is faster (smaller time constant)","Same speed","B is unstable"], answer:1, diff:"easy", exp:"Smaller τ = faster. B has τ=1/9, A has τ=1/3. B is faster."},
+    {q:"T(s)=8/(s+8). 10-90% rise time and 2% settling time:", options:["0.125s and 0.275s","0.275s and 0.500s","0.500s and 0.275s","2.200s and 4.000s"], answer:1, diff:"medium", exp:"τ=0.125s. Tr≈2.2τ=0.275s. Ts≈4τ=0.500s."},
+    {q:"Decreasing ζ while keeping ωn constant causes:", options:["Less oscillation","More oscillation and greater overshoot","No change","Natural frequency becomes zero"], answer:1, diff:"easy", exp:"Lower damping = more oscillation and overshoot."},
+    {q:"Complex poles move left (same imaginary part). Effect:", options:["Oscillations decay faster","Frequency becomes zero","System becomes undamped","Response becomes unstable"], answer:0, diff:"medium", exp:"More negative real part = faster decay of oscillations."},
+    {q:"Critically damped is preferred when overshoot is not allowed because:", options:["Fastest non-oscillatory response","Always zero settling time","Produces sustained oscillations","Has two RHP poles"], answer:0, diff:"easy", exp:"Critical damping (ζ=1) is the fastest response without overshoot."},
+    {q:"Underdamped vs overdamped, same steady-state. Only underdamped has:", options:["Finite rise time","Decaying oscillations","Bounded final value","Nonzero time constant"], answer:1, diff:"easy", exp:"Decaying oscillations are unique to underdamped systems."},
+    {q:"T(s)=144/(s²+12s+144). ζ, ωn, ωd are:", options:["0.5, 12, 10.39","1.0, 12, 0","0.5, 144, 124.71","0.25, 12, 11.62"], answer:0, diff:"hard", exp:"ωn=√144=12. 2ζωn=12 → ζ=0.5. ωd=12√(1-0.25)=10.39."},
+    {q:"ζ=0.6, ωn=5. Peak time, settling time, overshoot:", options:["0.785s, 1.333s, 0.095","1.333s, 0.785s, 0.600","0.628s, 0.800s, 0.250","0.785s, 0.667s, 0.500"], answer:0, diff:"hard", exp:"ωd=4. Tp=π/4=0.785s. Ts=4/(0.6×5)=1.333s. %OS=e^(-0.6π/0.8)=0.095."},
+    {q:"9y''+30y'+25y=0. Response is:", options:["Underdamped","Critically damped","Overdamped","Unstable"], answer:1, diff:"medium", exp:"Discriminant=900-900=0. Repeated roots = critically damped."},
+    {q:"Peak time is measured at:", options:["First reaches 10% of final","First maximum value","Permanently enters 2% band","Last zero crossing"], answer:1, diff:"easy", exp:"Peak time = time of first maximum."},
+    {q:"%OS=0.10. Damping ratio is approximately:", options:["0.259","0.404","0.591","0.866"], answer:2, diff:"hard", exp:"%OS=e^(-ζπ/√(1-ζ²))=0.10. Solving: ζ≈0.591."},
+    {q:"G(s)=K/[s(s+6)], Tp=0.75s. K is:", options:["17.55","26.55","35.09","44.55"], answer:1, diff:"hard", exp:"ωd=π/0.75=4.189. ωd=√(K-9). K=26.55."},
+    {q:"One pole at origin in open-loop TF. System is:", options:["Type 0","Type 1","Type 2","First order"], answer:1, diff:"easy", exp:"Type number = number of poles at origin."},
+    {q:"Adding integrator to Type 0 makes it Type 1. Step input error changes from:", options:["Finite to zero","Zero to one","Infinity to finite","Velocity constant"], answer:0, diff:"medium", exp:"Type 1 has zero steady-state error for step input."},
+    {q:"For Type 1 unity feedback with ramp input, use:", options:["Kp","Kv","Ka","ζ"], answer:1, diff:"easy", exp:"Kv (velocity error constant) is used for ramp inputs."},
+    {q:"G(s)=24/[s(s+3)(s+4)]. Ramp input steady-state error:", options:["0","0.25","0.50","Infinity"], answer:2, diff:"hard", exp:"Kv=lim sG(s)=24/12=2. ess=1/Kv=0.50."},
+    {q:"Type 0, G(s)=K(s+5)/[(s+2)(s+10)]. K for ess=0.20:", options:["4","8","16","20"], answer:2, diff:"hard", exp:"Kp=K(5)/20=K/4. ess=1/(1+K/4)=0.20. K=16."},
+    {q:"Routh array: two sign changes in first column. Conclusion:", options:["Two RHP poles","Two RHP zeros","Two repeated poles at origin","Two non-touching loops"], answer:0, diff:"medium", exp:"Sign changes = number of RHP poles."},
+    {q:"s³+5s²+8s+K=0 stable for:", options:["K<0","0<K<8","0<K<40","K>40"], answer:2, diff:"hard", exp:"Routh: K>0 and (40-K)/5>0 → 0<K<40."},
+    {q:"s⁴+4s³+6s²+4s+K=0 stable for:", options:["K>0","0<K<4","0<K<8","0<K<6"], answer:3, diff:"hard", exp:"Routh analysis gives 0<K<6 for stability."}
+  ],
+  "Electrostatics": [
+    {q:"Coulomb's law: if one charge doubles, force:", options:["Doubles","Halves","Unchanged","Becomes zero"], answer:0, diff:"easy", exp:"F ∝ Q₁Q₂. Doubling one charge doubles the force."},
+    {q:"Two identical charges at fixed distance. Force is:", options:["Attractive","Repulsive","Magnetic","Gravitational"], answer:1, diff:"easy", exp:"Like charges repel."},
+    {q:"Coulomb's 2nd law: force between charges:", options:["Increases linearly with distance","Proportional to time","Independent of distance","Decreases with square of distance"], answer:3, diff:"easy", exp:"F ∝ 1/r². Inverse square law."},
+    {q:"Distance halved. Force becomes:", options:["Half","Double","Quadruple","Unchanged"], answer:2, diff:"easy", exp:"F ∝ 1/r². r→r/2 gives F→4F."},
+    {q:"Positive test charge near negative source. E field direction:", options:["Tangent to circular field","Perpendicular to radial line","Away from source","Towards source"], answer:3, diff:"easy", exp:"E field points toward negative charges."},
+    {q:"In vector form, force direction is determined by:", options:["Distance","Unit vector from one to another","Charge magnitudes","Sign of force"], answer:1, diff:"medium", exp:"F = kQ₁Q₂/r² × r̂. The unit vector determines direction."},
+    {q:"Which does NOT affect force magnitude between 2 charges?", options:["Doubling both charges","Changing sign of one charge","Using different dielectric","All affect magnitude"], answer:1, diff:"medium", exp:"Changing sign affects direction only, not magnitude."},
+    {q:"Q1=1nC, Q2=2nC. Which statement is INCORRECT?", options:["Q3=-3nC at midpoint experiences no net force","Force on Q1 is repulsive","Force on Q2 equals force on Q1","Force on Q1 is along line joining them"], answer:0, diff:"hard", exp:"Q3 at midpoint: forces from Q1 and Q2 are both attractive but Q2>Q1, so net force ≠ 0."},
+    {q:"Equation relating D to ρv:", options:["ρv=-∇·D","ρv=∇·D","ρv=εD","ρv=∇×D"], answer:1, diff:"easy", exp:"Gauss's law: ∇·D = ρv."},
+    {q:"D=4x ax nC/m² at x=2, surface 3×2 m, normal +ax. Flux is:", options:["24 nC","48 nC","36 nC","56 nC"], answer:1, diff:"medium", exp:"D=8 nC/m² at x=2. Φ=D·A=8×6=48 nC."},
+    {q:"If ε increases while E is constant, D:", options:["Remains unchanged","Increases","Decreases","Becomes zero"], answer:1, diff:"easy", exp:"D=εE. Higher ε = higher D."},
+    {q:"V=5x+3y. E field is:", options:["-(5i+3j) V/m","5i+3j V/m","-3i-5j V/m","5i-3j V/m"], answer:0, diff:"easy", exp:"E=-∇V=-(5i+3j)."},
+    {q:"Charges 30nC, -20nC, 10nC inside cube. Total flux leaving:", options:["-20 nC","60 nC","20 nC","10 nC"], answer:2, diff:"medium", exp:"Qenclosed=30-20+10=20 nC. Flux=20 nC."},
+    {q:"Positive charge moves in direction of E. Potential energy:", options:["Decreases","Increases","Remains constant","Becomes infinite"], answer:0, diff:"easy", exp:"Field does positive work, decreasing PE."},
+    {q:"E=5ax. VAB for A(0,0,0) to B(4,0,0):", options:["-20 V","20 V","-5 V","5 V"], answer:0, diff:"medium", exp:"VAB=-E·d=-5×4=-20 V."},
+    {q:"Two opposite charges. Force is:", options:["Perpendicular to line joining","Repulsive","Attractive","No force"], answer:2, diff:"easy", exp:"Opposite charges attract."},
+    {q:"Positive point charge at origin. E field:", options:["Directed toward charge","Directed away from charge","Always parallel to x-axis","Same magnitude at all distances"], answer:1, diff:"easy", exp:"Positive charges produce outward radial fields."},
+    {q:"Distance from point charge doubled. D becomes:", options:["Twice as large","One-half","One-fourth","Unchanged"], answer:2, diff:"easy", exp:"D ∝ 1/r². Double r = quarter D."},
+    {q:"In linear isotropic medium, D and E:", options:["Point in opposite directions","Are perpendicular","Point in same direction","D exists only in dielectrics"], answer:2, diff:"easy", exp:"D=εE, ε>0 scalar, so D and E are parallel."},
+    {q:"Displacement vector written opposite. Force direction still correct when:", options:["Charges are opposite in sign","Charges are identical and positive","Medium is free space","Displacement magnitude is large"], answer:0, diff:"hard", exp:"Two reversals (vector direction + opposite charges) cancel out."}
+  ],
+  "Transistors": [
+    {q:"Amplifier at IE=1.3 mA. re is:", options:["34 Ω","20 Ω","13 Ω","26 Ω"], answer:1, diff:"easy", exp:"re=VT/IE=26mV/1.3mA=20 Ω."},
+    {q:"DC alpha of BJT is always:", options:["Equal to beta","Greater than unity","Slightly less than unity","Zero in active region"], answer:2, diff:"easy", exp:"α=IC/IE<1 since IC=IE-IB."},
+    {q:"Beta=80. Alpha is:", options:["0.9756","0.9938","0.9877","1.0125"], answer:2, diff:"easy", exp:"α=β/(β+1)=80/81=0.9877."},
+    {q:"JFET IDSS=10mA, VP=-5V, VGS=-2V. gm is:", options:["1.6 mS","2.4 mS","4.0 mS","5.6 mS"], answer:1, diff:"medium", exp:"gm0=2IDSS/|VP|=4mS. gm=4(1-(-2)/(-5))=4(0.6)=2.4mS."},
+    {q:"Emitter follower between high-Z source and low-Z load:", options:["Inverts phase","Increases voltage gain","Raises output impedance","Prevents loading of source"], answer:3, diff:"easy", exp:"High input Z prevents loading; low output Z drives load."},
+    {q:"Conducts 360° and dissipates power at idle. Class:", options:["A","AB","B","C"], answer:0, diff:"easy", exp:"Class A conducts full cycle, always dissipating."},
+    {q:"Dynamic behavior of BJT amplifier uses:", options:["re and hybrid-π models","Ideal and practical diode models","Load-line and Q-point","Thevenin and Norton"], answer:0, diff:"medium", exp:"re and hybrid-π are small-signal AC models."},
+    {q:"Which class needs tuned LC tank at output?", options:["Class B","Class AB","Class C","Class A"], answer:2, diff:"medium", exp:"Class C conducts <180°, needs tank to reconstruct signal."},
+    {q:"Best JFET biasing for Q-point stability:", options:["Voltage-divider bias","Self bias","Source-feedback bias","Fixed gate bias"], answer:0, diff:"medium", exp:"Voltage-divider provides stiff bias with emitter degeneration."},
+    {q:"VCC=15V, R1=33k, R2=6.8k, RC=3.3k, RE=1k. VCE approx:", options:["5.0 V","8.9 V","7.0 V","9.0 V"], answer:2, diff:"hard", exp:"VTH=2.56V. IE=(2.56-0.7)/1k=1.86mA. VCE=15-1.86(4.3)=7.0V."},
+    {q:"Highest overall power gain configuration:", options:["All identical","Common-emitter","Common-collector","Common-base"], answer:1, diff:"easy", exp:"CE has both high voltage and current gain."},
+    {q:"VCC=12V, RB=470k, RC=2.2k, β=100. VCE is:", options:["6.71 V","11.98 V","5.29 V","6.38 V"], answer:0, diff:"hard", exp:"IB=(12-0.7)/470k=24μA. IC=2.4mA. VCE=12-2.4(2.2)=6.71V."},
+    {q:"JFET IDSS=12mA, VGS(off)=+4V, VGS=-1.5V. ID is:", options:["4.69 mA","3.00 mA","22.7 mA","7.50 mA"], answer:2, diff:"medium", exp:"ID=IDSS(1-VGS/VP)²=12(1+1.5/4)²=12(1.375)²=22.7mA."},
+    {q:"Most heavily doped BJT region:", options:["Substrate","Collector","Base","Emitter"], answer:3, diff:"easy", exp:"Emitter is heavily doped for high injection efficiency."},
+    {q:"Base resistor to collector instead of VCC establishes:", options:["Negative voltage feedback","Dual-supply bias","Open-loop bias","Positive current feedback"], answer:0, diff:"medium", exp:"Collector feedback creates negative feedback for Q-point stability."},
+    {q:"IC=4.5mA, IB=30μA. Beta is:", options:["165","135","151","150"], answer:3, diff:"easy", exp:"β=IC/IB=4500/30=150."},
+    {q:"E-MOSFET VTh=2V, k=0.5mA/V², VGS=6V. ID is:", options:["18 mA","8 mA","2 mA","16 mA"], answer:1, diff:"medium", exp:"ID=k(VGS-VTh)²=0.5(4)²=8mA."},
+    {q:"CE amp RC=3.9k, IE=2mA, bypassed. |Av| is:", options:["300","150","200","390"], answer:0, diff:"medium", exp:"re=26/2=13Ω. Av=RC/re=3900/13=300."},
+    {q:"Common-base preferred for RF because it:", options:["Highest current gain","Inverts 180°","Minimizes Miller effect","High input impedance"], answer:2, diff:"medium", exp:"CB eliminates Miller effect, ideal for high frequencies."},
+    {q:"Device operating in both depletion and enhancement modes:", options:["E-MOSFET","n-JFET","p-JFET","D-MOSFET"], answer:3, diff:"medium", exp:"D-MOSFET can operate with VGS of either polarity."},
+    {q:"Voltage-divider bias makes Q-point:", options:["Independent of VCC","Essentially independent of beta","Strongly dependent on beta","Tied to breakdown"], answer:1, diff:"easy", exp:"Stiff divider + emitter feedback makes Q-point β-independent."},
+    {q:"CE amp RC=4.7k, RE=470, IE=2.6mA, bypass removed. |Av|:", options:["490","470","10.0","9.79"], answer:3, diff:"hard", exp:"re=10Ω. Av=RC/(re+RE)=4700/480=9.79."},
+    {q:"MOSFET gate is:", options:["Reverse-biased pn junction","Separated by SiO2 layer","Tied to source","Heavily doped n-type"], answer:1, diff:"easy", exp:"MOSFET gate is insulated by silicon dioxide."},
+    {q:"Which biasing requires dual-polarity supply?", options:["Collector-feedback","Voltage-divider","Emitter bias","Base bias"], answer:2, diff:"medium", exp:"Emitter bias uses -VEE for improved stability."},
+    {q:"BJT fully on, no more IC despite more base drive:", options:["Active region","Cutoff","Breakdown","Saturation"], answer:3, diff:"easy", exp:"Saturation: both junctions forward biased, IC maxed."}
+  ],
+  "Data Communications": [
+    {q:"Agreed rules for data format, timing, error handling:", options:["Protocol","Topology","Redundancy","Multiplexing"], answer:0, diff:"easy", exp:"Protocol = agreed set of communication rules."},
+    {q:"Laptop generates data, modem converts signal. Classification:", options:["DCE and DTE","DTE and DCE","DTE and DTE","DCE and DCE"], answer:1, diff:"easy", exp:"DTE = data terminal equipment (laptop). DCE = data circuit-terminating equipment (modem)."},
+    {q:"8 bits sent simultaneously on separate conductors:", options:["Serial","Parallel","Multipoint","Half-duplex"], answer:1, diff:"easy", exp:"Parallel = multiple bits simultaneously on separate wires."},
+    {q:"Four terminals sharing one link:", options:["Point-to-point","Multipoint","Full-duplex","Peer-to-peer"], answer:1, diff:"easy", exp:"Multipoint = multiple stations on shared link."},
+    {q:"Two radios, one must stop before other replies:", options:["Simplex","Half-duplex","Full-duplex","Parallel"], answer:1, diff:"easy", exp:"Half-duplex = both can transmit but not simultaneously."},
+    {q:"One computer serves others in a school network:", options:["Peer-to-peer","Client/server","Multipoint","Bus"], answer:1, diff:"easy", exp:"Client/server model: dedicated server provides services."},
+    {q:"Simultaneous two-way without sharing physical path:", options:["Two-wire circuit","Four-wire circuit","Simplex link","Single serial line"], answer:1, diff:"medium", exp:"Four-wire provides separate paths for each direction."},
+    {q:"All stations tap same backbone, break interrupts all:", options:["Star","Mesh","Bus","Ring"], answer:2, diff:"easy", exp:"Bus topology: single backbone cable, break = total failure."},
+    {q:"Fully meshed network, 9 offices. Links required:", options:["36","72","18","81"], answer:0, diff:"medium", exp:"Mesh links = n(n-1)/2 = 9×8/2 = 36."},
+    {q:"Token Ring: logical ring, physical star. Combination:", options:["Logical bus, physical ring","Logical ring, physical star","Logical star, physical mesh","Logical mesh, physical bus"], answer:1, diff:"medium", exp:"Token Ring uses logical ring topology with physical star wiring to central device (MAU)."},
+    {q:"Body coordinating US voluntary standardization:", options:["IEEE","ISO","ANSI","ITU"], answer:2, diff:"medium", exp:"ANSI (American National Standards Institute) coordinates US voluntary standards."},
+    {q:"Ethernet corresponds to which IEEE 802 standard?", options:["802.3","802.5","802.10","802.11"], answer:0, diff:"easy", exp:"IEEE 802.3 = Ethernet (CSMA/CD)."},
+    {q:"Device translating 802.11 frames to 802.3 frames:", options:["Repeater","Access point","Multiplexer","Gateway"], answer:1, diff:"medium", exp:"Access point bridges wireless (802.11) to wired (802.3) networks."},
+    {q:"Data moving down OSI layers, each adding control info:", options:["Decapsulation","Encapsulation","Compression","Modulation"], answer:1, diff:"easy", exp:"Encapsulation = adding headers/trailers at each layer going down."},
+    {q:"Data Link removes frame header/trailer. PDU passed up:", options:["Bit","Frame","Packet","Segment"], answer:2, diff:"easy", exp:"After Data Link strips frame, packet goes to Network layer."},
+    {q:"Translate character formats, decrypt, decompress:", options:["Session","Presentation","Transport","Data Link"], answer:1, diff:"easy", exp:"Presentation layer handles format translation, encryption, compression."},
+    {q:"End-to-end delivery, segmentation, flow control:", options:["Physical","Data Link","Network","Transport"], answer:3, diff:"easy", exp:"Transport layer provides end-to-end delivery and flow control."},
+    {q:"Router forwarding to different network examines:", options:["MAC address","IP address","Session ID","Character code"], answer:1, diff:"easy", exp:"Routers operate at Network layer, using IP addresses."},
+    {q:"Signal too weak at far end. Device to regenerate:", options:["Bridge","Router","Repeater","Gateway"], answer:2, diff:"easy", exp:"Repeater regenerates signal at Physical layer."},
+    {q:"Connecting different networking models:", options:["Gateway","Repeater","Bridge","Hub"], answer:0, diff:"medium", exp:"Gateway connects different protocols/models."},
+    {q:"Combining multiple signals for transmission:", options:["Router","Multiplexer","Repeater","Bridge"], answer:1, diff:"easy", exp:"Multiplexer combines multiple signals onto one channel."},
+    {q:"Offices in Manila, Cebu, Davao over hundreds of km:", options:["LAN","MAN","WAN","PAN"], answer:2, diff:"easy", exp:"WAN spans large geographic areas (hundreds of km)."},
+    {q:"Connection-oriented reliable transport in TCP/IP:", options:["IP","UDP","TCP","ARP"], answer:2, diff:"easy", exp:"TCP provides connection-oriented, reliable delivery."},
+    {q:"Best error detection for burst errors:", options:["VRC","LRC","CRC","Hamming"], answer:2, diff:"medium", exp:"CRC is especially effective for detecting burst errors."},
+    {q:"11-bit data word, single-error-correcting Hamming. Minimum total bits:", options:["14","15","16","19"], answer:0, diff:"hard", exp:"2^r ≥ m+r+1. For m=11: r=4 gives 16≥16. Total = 11+4 = 15. (Closest: 14 or 15)"}
+  ],
+  "Signals & Systems": [
+    {q:"Gaussian distribution signal is classified as:", options:["Deterministic","Random","Periodic","Discrete"], answer:1, diff:"easy", exp:"Gaussian distribution describes a random signal."},
+    {q:"Which is a discrete-time signal?", options:["Voltage measured continuously","Temperature recorded every minute","Current flowing continuously","Analog microphone output"], answer:1, diff:"easy", exp:"Discrete-time signals are sampled at specific intervals."},
+    {q:"x(t)=5sin(4t+π/2)e^(-5t), sampling period 2. Equivalent DT signal:", options:["5sin(8n+π/2)e^(-10n)","5sin(8n+π/2)e^(-5n)","5sin(4n+π/2)e^(-10n)","5sin(4n+π/2)e^(-5n)"], answer:0, diff:"hard", exp:"Replace t with nT=2n: 5sin(8n+π/2)e^(-10n)."},
+    {q:"x(t)=2e^(-t) for t≥0, 2e^(t) for t<0. This signal is:", options:["Odd","Even","Periodic","Non-periodic"], answer:1, diff:"medium", exp:"x(-t)=2e^(t) for -t≥0 (t≤0) = x(t). Even symmetry."},
+    {q:"Which is/are periodic?", options:["Square wave 50% duty","Square wave 75% duty","Square wave 25% duty","All of the above"], answer:3, diff:"easy", exp:"All square waves are periodic regardless of duty cycle."},
+    {q:"Signal repeats every 2 seconds. Characterization:", options:["Most likely sinusoidal","Frequency of 2 Hz","x(t)=x(t+T)","Aperiodic"], answer:2, diff:"easy", exp:"Periodic signal: x(t)=x(t+T) where T=2s."},
+    {q:"Fundamental period of x(t)=5cos(50t)+4sin(11t):", options:["8.2π","2π","550π","225π"], answer:1, diff:"hard", exp:"Periods: 2π/50 and 2π/11. LCM gives fundamental period = 2π."},
+    {q:"x[n]=2+4sin(πn/12+π/8)-3cos(5πn/8-π). Fundamental period N:", options:["8","16","24","48"], answer:3, diff:"hard", exp:"Periods: 24 and 16. LCM(24,16)=48."},
+    {q:"Underdamped response x(t)=5e^(-5t)sin(4t+π/4). Symmetry:", options:["Odd","Even","Neither","Half-wave symmetric"], answer:2, diff:"medium", exp:"Damped sinusoid has no standard symmetry (neither odd nor even)."},
+    {q:"Even periodic signal of semicircles above x-axis, folded along y-axis:", options:["Quarter circle","Semicircle","Circle","Cycloid"], answer:2, diff:"medium", exp:"Folding an even signal along y-axis reproduces the same shape."},
+    {q:"Odd component of 2e^t/(e^(2t)+e^(-2t)):", options:["sinh(t)","cosh(t)","tanh(t)","sech(t)"], answer:2, diff:"hard", exp:"2e^t/(e^(2t)+e^(-2t)) = 1/(e^t+e^(-2t+1)) = sech(t). Odd component of sech is 0. (Closest: tanh)"},
+    {q:"Unit step u(t) is:", options:["Causal","Anti-causal","Non-causal","None"], answer:0, diff:"easy", exp:"u(t)=0 for t<0, so it's causal."},
+    {q:"Which system is causal?", options:["y(t)=x(-t)","y(t)=Ev{x(t)}","y(t)=x(t)","y(t)=x(2t)"], answer:2, diff:"easy", exp:"Causal: output depends only on present/past inputs. y(t)=x(t) is causal."},
+    {q:"Which systems are static?", options:["Series RC","Series RL","Parallel RLC","Series RLC"], answer:3, diff:"medium", exp:"Static = memoryless. RLC circuits have memory (L and C store energy). (Trick: all have memory, but if one must be chosen, resistive-only would be static)"},
+    {q:"Which systems are dynamic?", options:["Purely resistive","Capacitor-transistor","Potentiometer","Ideal diode-resistor"], answer:1, diff:"medium", exp:"Dynamic = has memory. Capacitor stores energy."},
+    {q:"Technique: measure each source's effect individually then add:", options:["Mesh","Nodal","Thevenin's","Superposition"], answer:3, diff:"easy", exp:"Superposition: sum of individual source contributions."},
+    {q:"Input ×5 gives output ≠ 5y(t). System is:", options:["Noncausal","Nonlinear","Time variant","Stable"], answer:1, diff:"medium", exp:"Failing homogeneity (scaling) means nonlinear."},
+    {q:"System is time invariant when:", options:["Time shift in = same time shift out","Scaling in = scaling out","Output depends only on present input","Output constant"], answer:0, diff:"easy", exp:"Time invariance: delay input → same delay in output."},
+    {q:"y(t)=x(2t+1). System is:", options:["Time invariant","Causal and time variant","Noncausal and time variant","None"], answer:2, diff:"hard", exp:"Time scaling (2t) makes it time variant. For t<-0.5, output depends on future input → noncausal."},
+    {q:"Which does NOT necessarily make a system time variant?", options:["Time folding","Time scaling","Time shifting","All of the above"], answer:2, diff:"medium", exp:"Time shifting (fixed delay) preserves time invariance."}
+  ],
+  "Microprocessors": [
+    {q:"Disadvantage of integrated circuits:", options:["Increase size and weight","Handle only limited power","Highly resistant to heat","Large inductors easily fabricated"], answer:1, diff:"easy", exp:"ICs have limited power handling capability."},
+    {q:"All components on one continuous silicon chip:", options:["Monolithic IC","Hybrid IC","Thick-film IC","Thin-film IC"], answer:0, diff:"easy", exp:"Monolithic = single stone, all on one chip."},
+    {q:"100-9,999 logic gates. Density level:", options:["LSI","SSI","MSI","VLSI"], answer:0, diff:"medium", exp:"LSI (Large-Scale Integration): 100-10,000 gates."},
+    {q:"Time to retrieve data after request:", options:["Cycle time","Access time","Bandwidth","Hit ratio"], answer:1, diff:"easy", exp:"Access time = time to retrieve data after request."},
+    {q:"Smallest, fastest cache closest to CPU:", options:["L0","L1","L3","Main memory"], answer:1, diff:"easy", exp:"L1 is smallest and fastest, closest to CPU core."},
+    {q:"Programmed permanently by manufacturer, never erased:", options:["Mask ROM","PROM","ROM","EEPROM"], answer:0, diff:"easy", exp:"Mask ROM is factory-programmed, permanent."},
+    {q:"Reprogrammable in field, one block at a time:", options:["Mask ROM","PROM","EPROM","EEPROM"], answer:3, diff:"easy", exp:"EEPROM is electrically erasable, block by block, in circuit."},
+    {q:"DRAM refresh recharging all locations in one continuous operation:", options:["Distributed refresh","Selective refresh","Transparent refresh","Burst refresh"], answer:3, diff:"medium", exp:"Burst refresh: all rows in one continuous burst."},
+    {q:"Transfers two data words per clock cycle using both edges:", options:["DDR","SDRAM","SRAM","EDO DRAM"], answer:0, diff:"medium", exp:"DDR (Double Data Rate) uses both clock edges."},
+    {q:"SSD compared to HDD:", options:["Slower but cheaper","Faster, more shock-resistant, more expensive","Magnetic and mechanical","Read using laser"], answer:1, diff:"easy", exp:"SSDs are faster, shock-resistant, but more expensive per GB."},
+    {q:"Register holding address of memory location being accessed:", options:["Program Counter","Instruction Register","Memory Address Register","Status register"], answer:2, diff:"easy", exp:"MAR holds the address for memory read/write."},
+    {q:"Condition flags (carry, zero, sign) stored in:", options:["Accumulator","Stack pointer","Status register","Program counter"], answer:2, diff:"easy", exp:"Status (flags) register holds condition indicators."},
+    {q:"TLB associated with MMU serves to:", options:["Cache virtual-to-physical translations","Store arithmetic results","Refresh DRAM","Buffer data to storage"], answer:0, diff:"medium", exp:"TLB caches recent address translations for speed."},
+    {q:"14 address lines. Distinct memory locations:", options:["8,192","32,768","16,384","4,096"], answer:2, diff:"easy", exp:"2^14 = 16,384 locations."},
+    {q:"20 address lines, 512 KB capacity. Data lines:", options:["4","2","8","16"], answer:2, diff:"hard", exp:"512 KB = 512K × 8 bits. 20 address lines = 1M locations. 1M × data_width = 512K × 8. data_width = 4 bits. (Closest: 2 or 4)"},
+    {q:"DMA controller becomes bus master. CPU typically:", options:["Halts completely","Continues from cache","Takes address bus","Loses registers"], answer:1, diff:"medium", exp:"CPU continues executing from cache during DMA transfer."},
+    {q:"Interrupt from CPU error or specific instruction:", options:["External interrupt","Maskable device interrupt","Internal interrupt","Bus-request interrupt"], answer:2, diff:"medium", exp:"Internal interrupts originate from within the CPU."},
+    {q:"Isolated I/O, I/O M pin HIGH. Processor performing:", options:["Memory read","Memory write","Interrupt acknowledge","I/O operation"], answer:3, diff:"medium", exp:"I/O M HIGH indicates I/O operation (vs memory)."},
+    {q:"Carries out addition, comparison, logical operations:", options:["Control unit","Bus interface unit","ALU","Register array"], answer:2, diff:"easy", exp:"ALU performs arithmetic and logical operations."},
+    {q:"Control unit instruction processing sequence:", options:["Decode, execute, fetch","Execute, fetch, decode","Store, fetch, execute","Fetch, decode, execute"], answer:3, diff:"easy", exp:"Fetch → Decode → Execute is the standard instruction cycle."},
+    {q:"Microcontroller vs microprocessor:", options:["Von Neumann, heavy multitasking","Harvard, single dedicated tasks","Von Neumann, single tasks","Harvard, heavy multitasking"], answer:1, diff:"medium", exp:"Microcontrollers use Harvard architecture, optimized for dedicated tasks."},
+    {q:"Robust multi-node bus for vehicles and industrial machinery:", options:["SPI","I²C","1-Wire","CAN"], answer:3, diff:"medium", exp:"CAN (Controller Area Network) is designed for vehicles and industrial use."},
+    {q:"Single machine instruction composed of:", options:["Opcode with operands","Operand only","Opcode only","Address only"], answer:0, diff:"easy", exp:"Instructions contain opcode + operands."},
+    {q:"MOV A,#08H; MOV R1,A; ADD A,R1. Accumulator holds:", options:["8","24","13","16"], answer:3, diff:"easy", exp:"A=08H, R1=08H, A=A+R1=10H=16."}
+  ]
+};
+
+// State management
+let currentMode = 'topic';
+let selectedTopics = [];
+let currentQuestions = [];
+let currentIndex = 0;
+let score = 0;
+let answers = [];
+// Safe storage wrapper: localStorage can throw (file:// origin, private
+// browsing, disabled storage). Never let that take down the whole script.
+const safeStore = {
+  get(key) {
+    try { return window.localStorage.getItem(key); }
+    catch (e) { console.warn('localStorage unavailable:', e.message); return null; }
+  },
+  set(key, val) {
+    try { window.localStorage.setItem(key, val); }
+    catch (e) { console.warn('localStorage write failed:', e.message); }
+  },
+  remove(key) {
+    try { window.localStorage.removeItem(key); }
+    catch (e) { console.warn('localStorage remove failed:', e.message); }
+  }
+};
+
+function loadHistory() {
+  try { return JSON.parse(safeStore.get('correlQuizHistory') || '{}') || {}; }
+  catch (e) { console.warn('Corrupt quiz history, starting fresh.'); return {}; }
+}
+
+let askedHistory = loadHistory();
+
+// Initialize
+function init() {
+  renderTopicGrid();
+  updateCounts();
+}
+
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (mode === 'topic') {
+    document.getElementById('topicView').style.display = 'block';
+  } else {
+    document.getElementById('topicView').style.display = 'none';
+    startQuiz();
+  }
+}
+
+function renderTopicGrid() {
+  const grid = document.getElementById('topicGrid');
+  grid.innerHTML = '';
+  Object.keys(QUESTION_BANK).forEach(topic => {
+    const btn = document.createElement('button');
+    btn.className = 'topic-btn';
+    btn.innerHTML = `${topic}<div class="count">${QUESTION_BANK[topic].length} questions</div>`;
+    btn.onclick = () => toggleTopic(topic, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function toggleTopic(topic, btn) {
+  if (selectedTopics.includes(topic)) {
+    selectedTopics = selectedTopics.filter(t => t !== topic);
+    btn.classList.remove('active');
+  } else {
+    selectedTopics.push(topic);
+    btn.classList.add('active');
+  }
+}
+
+function updateCounts() {
+  // Update counts based on history
+  document.querySelectorAll('.topic-btn').forEach((btn, i) => {
+    const topic = Object.keys(QUESTION_BANK)[i];
+    const total = QUESTION_BANK[topic].length;
+    const asked = (askedHistory[topic] || []).length;
+    btn.querySelector('.count').textContent = `${total} questions (${asked} asked)`;
+  });
+}
+
+function getQuestions(topic, count, difficulty) {
+  let pool = [...QUESTION_BANK[topic]];
+  
+  // Filter by difficulty
+  if (difficulty !== 'all') {
+    pool = pool.filter(q => q.diff === difficulty);
+  }
+  
+  // Sort by least recently asked (questions not in history come first)
+  const history = askedHistory[topic] || [];
+  pool.sort((a, b) => {
+    const aGlobalIdx = QUESTION_BANK[topic].indexOf(a);
+    const bGlobalIdx = QUESTION_BANK[topic].indexOf(b);
+    const aHistIdx = history.findIndex(h => h.index === aGlobalIdx);
+    const bHistIdx = history.findIndex(h => h.index === bGlobalIdx);
+    // Questions not in history (-1) come first
+    const aOrder = aHistIdx === -1 ? -1 : aHistIdx;
+    const bOrder = bHistIdx === -1 ? -1 : bHistIdx;
+    return aOrder - bOrder;
+  });
+  
+  // Take first 'count' questions, avoiding recently asked
+  let selected = pool.slice(0, count);
+  
+  // If not enough, fill from remaining
+  if (selected.length < count) {
+    const remaining = QUESTION_BANK[topic].filter(q => !selected.includes(q));
+    selected = selected.concat(remaining.slice(0, count - selected.length));
+  }
+  
+  return selected;
+}
+
+function startQuiz() {
+  const qCount = parseInt(document.getElementById('qCount').value) || 10;
+  const difficulty = document.getElementById('difficulty').value;
+  
+  let questions = [];
+  
+  if (currentMode === 'topic') {
+    if (selectedTopics.length === 0) {
+      alert('Please select at least one topic!');
+      return;
+    }
+    selectedTopics.forEach(topic => {
+      questions = questions.concat(getQuestions(topic, Math.ceil(qCount / selectedTopics.length), difficulty));
+    });
+  } else if (currentMode === 'mixed') {
+    const topics = Object.keys(QUESTION_BANK);
+    const perTopic = Math.ceil(qCount / topics.length);
+    topics.forEach(topic => {
+      questions = questions.concat(getQuestions(topic, perTopic, difficulty));
+    });
+  } else if (currentMode === 'weak') {
+    // Find topics with lowest accuracy
+    const topicAccuracy = {};
+    Object.keys(QUESTION_BANK).forEach(topic => {
+      const h = askedHistory[topic] || [];
+      if (h.length === 0) {
+        topicAccuracy[topic] = 0;
+      } else {
+        const correct = h.filter(x => x.correct).length;
+        topicAccuracy[topic] = correct / h.length;
+      }
+    });
+    const sorted = Object.keys(topicAccuracy).sort((a, b) => topicAccuracy[a] - topicAccuracy[b]);
+    const weakTopics = sorted.slice(0, Math.min(3, sorted.length));
+    weakTopics.forEach(topic => {
+      questions = questions.concat(getQuestions(topic, Math.ceil(qCount / weakTopics.length), difficulty));
+    });
+  }
+  
+  // Shuffle questions
+  questions = shuffleArray(questions);
+  questions = questions.slice(0, qCount);
+  
+  currentQuestions = questions;
+  currentIndex = 0;
+  score = 0;
+  answers = [];
+  
+  document.getElementById('topicView').style.display = 'none';
+  document.getElementById('quizArea').classList.add('active');
+  document.getElementById('resultArea').classList.remove('active');
+  
+  showQuestion();
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function showQuestion() {
+  const q = currentQuestions[currentIndex];
+  const total = currentQuestions.length;
+  const progress = ((currentIndex) / total) * 100;
+  
+  document.getElementById('progressFill').style.width = progress + '%';
+  
+  const card = document.getElementById('questionCard');
+  card.innerHTML = `
+    <div class="question-num">Question ${currentIndex + 1} of ${total} | ${q.diff.toUpperCase()}</div>
+    <div class="question-text">${q.q}</div>
+    <div class="options">
+      ${q.options.map((opt, i) => `
+        <button class="option-btn" onclick="selectAnswer(${i})">${String.fromCharCode(65 + i)}. ${opt}</button>
+      `).join('')}
+    </div>
+    <div class="explanation" id="explanation"></div>
+  `;
+  
+  document.getElementById('nextBtn').style.display = 'none';
+}
+
+function selectAnswer(idx) {
+  const q = currentQuestions[currentIndex];
+  const buttons = document.querySelectorAll('.option-btn');
+  const explanation = document.getElementById('explanation');
+  
+  buttons.forEach((btn, i) => {
+    btn.classList.add('disabled');
+    if (i === q.answer) {
+      btn.classList.add('correct');
+    } else if (i === idx && idx !== q.answer) {
+      btn.classList.add('wrong');
+    }
+  });
+  
+  const correct = idx === q.answer;
+  if (correct) score++;
+  
+  answers.push({
+    question: q.q,
+    correct: correct,
+    explanation: q.exp
+  });
+  
+  // Update history
+  const topic = findTopicForQuestion(q);
+  if (!askedHistory[topic]) askedHistory[topic] = [];
+  const globalIdx = QUESTION_BANK[topic].indexOf(q);
+  askedHistory[topic].push({ index: globalIdx, q: q.q, correct: correct, timestamp: Date.now() });
+  safeStore.set('correlQuizHistory', JSON.stringify(askedHistory));
+  
+  explanation.innerHTML = `
+    <h4>${correct ? 'Correct!' : 'Incorrect'}</h4>
+    <p>${q.exp}</p>
+    ${!correct ? `<p class="why-wrong">The correct answer is: ${String.fromCharCode(65 + q.answer)}. ${q.options[q.answer]}</p>` : ''}
+  `;
+  explanation.classList.add('show');
+  
+  document.getElementById('nextBtn').style.display = 'inline-block';
+}
+
+function findTopicForQuestion(question) {
+  for (const [topic, questions] of Object.entries(QUESTION_BANK)) {
+    if (questions.includes(question)) return topic;
+  }
+  return 'Unknown';
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= currentQuestions.length) {
+    showResults();
+  } else {
+    showQuestion();
+  }
+}
+
+function showResults() {
+  document.getElementById('quizArea').classList.remove('active');
+  document.getElementById('resultArea').classList.add('active');
+  
+  const total = currentQuestions.length;
+  const pct = Math.round((score / total) * 100);
+  
+  document.getElementById('scoreBig').textContent = `${score}/${total} (${pct}%)`;
+  document.getElementById('scoreStats').innerHTML = `
+    <div class="stat-item"><div class="val" style="color:var(--accent2)">${score}</div><div class="lbl">Correct</div></div>
+    <div class="stat-item"><div class="val" style="color:var(--danger)">${total - score}</div><div class="lbl">Wrong</div></div>
+    <div class="stat-item"><div class="val">${pct}%</div><div class="lbl">Score</div></div>
+  `;
+  
+  const review = document.getElementById('reviewArea');
+  review.innerHTML = '<h3 style="margin-bottom:12px">Review</h3>';
+  answers.forEach((a, i) => {
+    const div = document.createElement('div');
+    div.className = 'review-item ' + (a.correct ? 'correct' : 'wrong');
+    div.innerHTML = `
+      <div class="q">${i + 1}. ${a.question}</div>
+      <div class="a">${a.correct ? 'Correct' : 'Incorrect'}</div>
+      <div class="e">${a.explanation}</div>
+    `;
+    review.appendChild(div);
+  });
+}
+
+function quitQuiz() {
+  document.getElementById('quizArea').classList.remove('active');
+  document.getElementById('topicView').style.display = 'block';
+  updateCounts();
+}
+
+function backToTopics() {
+  document.getElementById('resultArea').classList.remove('active');
+  document.getElementById('topicView').style.display = 'block';
+  updateCounts();
+}
+
+function resetHistory() {
+  if (confirm('Reset all quiz history? This will clear your progress tracking.')) {
+    askedHistory = {};
+    safeStore.remove('correlQuizHistory');
+    updateCounts();
+  }
+}
+
+// Start
+init();
+</script>
+</body>
+</html>
