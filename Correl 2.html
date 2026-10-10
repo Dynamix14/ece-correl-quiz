@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ECE Correl Quiz Trainer</title>
 <style>
 :root {
@@ -17,12 +17,24 @@
   --muted: #8b949e;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+/* iOS: tap targets >= 44px, no double-tap-zoom delay, visible tap feedback. */
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(88,166,255,0.25);
+  min-height: 44px;
+}
+button:active { transform: scale(0.985); opacity: 0.9; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--fg);
   min-height: 100vh;
   padding: 20px;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
 }
 .container { max-width: 900px; margin: 0 auto; }
 h1 { text-align: center; margin-bottom: 8px; color: var(--accent); font-size: 1.8em; }
@@ -207,6 +219,8 @@ h1 { text-align: center; margin-bottom: 8px; color: var(--accent); font-size: 1.
 </style>
 </head>
 <body>
+<noscript><div style="background:#d29922;color:#0d1117;padding:12px 16px;margin-bottom:16px;border-radius:8px;font-weight:600;line-height:1.4">
+JavaScript is disabled in this viewer, so nothing is tappable. Open the file in Safari, or use the hosted link.</div></noscript>
 <div class="container">
   <h1>ECE Correl Quiz Trainer</h1>
   <p class="subtitle">Master all topics from your ECE Correlation exams</p>
@@ -881,7 +895,7 @@ const safeStore = {
 };
 
 function loadHistory() {
-  try { return JSON.parse(localStorage.getItem('correlQuizHistory') || '{}') || {}; }
+  try { return JSON.parse(safeStore.get('correlQuizHistory') || '{}') || {}; }
   catch (e) { console.warn('Corrupt quiz history, starting fresh.'); return {}; }
 }
 
@@ -1207,7 +1221,7 @@ function selectAnswer(idx) {
   if (!askedHistory[topic]) askedHistory[topic] = [];
   const globalIdx = QUESTION_BANK[topic].indexOf(q);
   askedHistory[topic].push({ index: globalIdx, q: q.q, correct: correct, timestamp: Date.now() });
-  localStorage.setItem('correlQuizHistory', JSON.stringify(askedHistory));
+  safeStore.set('correlQuizHistory', JSON.stringify(askedHistory));
   
   let html = `<h4>${correct ? 'Correct!' : 'Incorrect'}</h4><p>${esc(q.exp || '')}</p>`;
   if (!correct) {
@@ -1292,7 +1306,7 @@ function backToTopics() {
 function resetHistory() {
   if (confirm('Reset all quiz history? This will clear your progress tracking.')) {
     askedHistory = {};
-    localStorage.removeItem('correlQuizHistory');
+    safeStore.remove('correlQuizHistory');
     updateCounts();
   }
 }
