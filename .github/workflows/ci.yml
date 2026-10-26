@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Question bank + engine tests
+        run: npm test
+
+      - name: Every script referenced by index.html exists
+        run: |
+          set -e
+          for f in $(grep -o 'src="[^"]*\.js"' index.html | sed 's/src="//;s/"//'); do
+            test -f "$f" || { echo "index.html references missing file: $f"; exit 1; }
+            echo "ok: $f"
+          done

@@ -1,0 +1,10 @@
+{
+  "name": "ece-correl-quiz",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Offline ECE Correlation exam quiz trainer (ELECS + EST) with per-topic mastery tracking.",
+  "scripts": {
+    "test": "node --test test/bank.test.js test/engine.test.js"
+  },
+  "license": "SEE LICENSE IN README.md"
+}
